@@ -1,8 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "headers/math.hpp"
-#include "headers/obj.hpp"
-#include "headers/shader.hpp"
+#include "headers/Math.hpp"
+#include "headers/Obj.hpp"
+#include "headers/Shader.hpp"
 #include "headers/BMP.hpp"
 #include "headers/Camera.hpp"
 
@@ -50,15 +50,18 @@ struct runState{
         grey,
     };
 
+    Camera camera;
     GLFWwindow* window;
     std::vector<Shader> shaderVec;
     ShaderEnum shaderSelection;
     Math::Vec2<int> resolution;
+    Math::Vec3<float> rotationAxis;
     float lastFrameTime;
     float currFrameTime;
-    Camera camera;
+    float rotationAngle;
+    bool isRotating;
 
-    runState(): shaderSelection(grey){
+    runState(): shaderSelection(grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}{
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
@@ -71,6 +74,12 @@ struct runState{
         glfwTerminate();
     }
 };
+
+void toggleRotation(GLFWwindow* window, int key, int scancode, int action, int mods){
+    runState* state = (runState*)glfwGetWindowUserPointer(window);
+    if(key == GLFW_KEY_T && action == GLFW_PRESS)
+        state->isRotating = !state->isRotating;
+}
 
 void processInput(runState* state)
 {
@@ -138,11 +147,15 @@ void runLoop(Obj* mesh, runState* state){
         glUniform1i(glGetUniformLocation(currShaderID, "objScale"), mesh->getScale());
 
     Math::Mat4<float> model(1.0f);
+    if(state->isRotating)
+        state->rotationAngle += 0.01;
+    Math::Mat4<float> rotation = Math::Quaternion<float>(state->rotationAxis, state->rotationAngle).getMatrix();
     Math::Vec3<float> translation = Math::Vec3{0.0f, 0.0f, 0.0f} - mesh->getMidPoint();
+    model = Math::translationMatrix(model, translation);
+    model = rotation * model;
     Math::Mat4<float> view = state->camera.getViewMatrix();
     float cameraDistance = (state->camera.position - Math::Vec3<float>(0,0,0)).length();
     Math::Mat4<float> perspective = Math::perspectiveMatrix(state->camera.fov, (float) state->resolution.x/state->resolution.y, 0.1f, mesh->boundingSphereRadius() + cameraDistance);
-    model = Math::translationMatrix(model, translation);
     glUniformMatrix4fv(modelUniform, 1, GL_FALSE, (GLfloat*)&model);
     glUniformMatrix4fv(projUniform, 1, GL_FALSE, &perspective[0][0]);
     glUniformMatrix4fv(viewUniform, 1, GL_FALSE, (GLfloat*)&view);
@@ -169,6 +182,8 @@ void printInfo(){
     std::cout << "\tLeft Ctrl  - Move Object Down\n";
     std::cout << "\tSpace      - Move Object Up\n";
     std::cout << "\t\n";
+    std::cout << "\tT          - Toggle Object Rotation\n";
+    std::cout << "\t\n";
     std::cout << "\tWASD       - Rotate Camera Around Object\n";
     std::cout << "\t\n";
     std::cout << "\tESC        - Exit Application\n";
@@ -188,6 +203,8 @@ int main(int argc, char** argv){
         return 1;
     gladInit();
     glfwSetInputMode(mainState.window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    glfwSetWindowUserPointer(mainState.window, &mainState);
+    glfwSetKeyCallback(mainState.window, toggleRotation);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEBUG_OUTPUT);
