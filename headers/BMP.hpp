@@ -130,7 +130,7 @@ struct BMP {
             }
         }
         else {
-            std::cout << "Unable to open the input image file.\n";
+            std::cout << "Unable to open the input image file \"" << fname << "\"\n";
             validSource = false;
             return;
         }

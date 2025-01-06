@@ -52,22 +52,23 @@ struct runState{
 
     Camera camera;
     GLFWwindow* window;
-    std::vector<Shader> shaderVec;
-    ShaderEnum shaderSelection;
+    unsigned int shaderID;
+    Math::Vec2<int> shaderSelection;
     Math::Vec2<int> resolution;
     Math::Vec3<float> rotationAxis;
+    float mixPercentage;
     float lastFrameTime;
     float currFrameTime;
     float rotationAngle;
     bool isRotating;
+    bool vPressed;
 
-    runState(): shaderSelection(grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}{
+    runState(): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, vPressed(false){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
         resolution.y = videoMode->height * 0.75;
         window = windowInit(resolution.x, resolution.y);
-        shaderVec.reserve(4);
     }
 
     ~runState(){
@@ -75,27 +76,38 @@ struct runState{
     }
 };
 
-void toggleRotation(GLFWwindow* window, int key, int scancode, int action, int mods){
+void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
     runState* state = (runState*)glfwGetWindowUserPointer(window);
+    if(key == GLFW_KEY_V)
+        state->vPressed = action == GLFW_PRESS;
+    if(key == GLFW_KEY_1 && action == GLFW_PRESS && state->vPressed){
+        state->shaderSelection.x = state->shaderSelection.y;
+        state->shaderSelection.y = state->texCoords;
+        state->mixPercentage = 0;
+    }
+    else if(key == GLFW_KEY_2 && action == GLFW_PRESS && state->vPressed){
+        state->shaderSelection.x = state->shaderSelection.y;
+        state->shaderSelection.y = state->normals;
+        state->mixPercentage = 0;
+    }
+    else if(key == GLFW_KEY_3 && action == GLFW_PRESS && state->vPressed){
+        state->shaderSelection.x = state->shaderSelection.y;
+        state->shaderSelection.y = state->triplanarMapping;
+        state->mixPercentage = 0;
+    }
+    else if(key == GLFW_KEY_4 && action == GLFW_PRESS && state->vPressed){
+        state->shaderSelection.x = state->shaderSelection.y;
+        state->shaderSelection.y = state->grey;
+        state->mixPercentage = 0;
+    }
+
     if(key == GLFW_KEY_T && action == GLFW_PRESS)
         state->isRotating = !state->isRotating;
 }
 
-void processInput(runState* state)
-{
+void fetchContinuousInput(runState* state){
     if(glfwGetKey(state->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(state->window, true);
-
-    if(glfwGetKey(state->window, GLFW_KEY_V) == GLFW_PRESS){
-        if(glfwGetKey(state->window, GLFW_KEY_1) == GLFW_PRESS)
-            state->shaderSelection = state->texCoords;
-        else if(glfwGetKey(state->window, GLFW_KEY_2) == GLFW_PRESS)
-            state->shaderSelection = state->normals;
-        else if(glfwGetKey(state->window, GLFW_KEY_3) == GLFW_PRESS)
-            state->shaderSelection = state->triplanarMapping;
-        else if(glfwGetKey(state->window, GLFW_KEY_4) == GLFW_PRESS)
-            state->shaderSelection = state->grey;
-    }
 
     if(glfwGetKey(state->window, GLFW_KEY_W) == GLFW_PRESS)
         state->camera.move(Camera::Back, state->currFrameTime - state->lastFrameTime);
@@ -134,17 +146,20 @@ void processInput(runState* state)
 
 void runLoop(Obj* mesh, runState* state){
     state->currFrameTime = glfwGetTime();
-    processInput(state);
+    fetchContinuousInput(state);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    unsigned int currShaderID = state->shaderVec[state->shaderSelection];
-    glUseProgram(currShaderID);
-    int projUniform = glGetUniformLocation(currShaderID, "projection");
-    int modelUniform = glGetUniformLocation(currShaderID, "model");
-    int viewUniform = glGetUniformLocation(currShaderID, "view");
-    if(state->shaderSelection == state->triplanarMapping)
-        glUniform1i(glGetUniformLocation(currShaderID, "objScale"), mesh->getScale());
+    glUseProgram(state->shaderID);
+    int projUniform = glGetUniformLocation(state->shaderID, "projection");
+    int modelUniform = glGetUniformLocation(state->shaderID, "model");
+    int viewUniform = glGetUniformLocation(state->shaderID, "view");
+    glUniform1i(glGetUniformLocation(state->shaderID, "objScale"), mesh->getScale());
+    glUniform1f(glGetUniformLocation(state->shaderID, "percentage"), state->mixPercentage);
+    glUniform2i(glGetUniformLocation(state->shaderID, "chosenShaders"), state->shaderSelection.x, state->shaderSelection.y);
+
+    if(state->mixPercentage < 1)
+        state->mixPercentage += 0.01;
 
     Math::Mat4<float> model(1.0f);
     if(state->isRotating)
@@ -161,13 +176,6 @@ void runLoop(Obj* mesh, runState* state){
     glUniformMatrix4fv(viewUniform, 1, GL_FALSE, (GLfloat*)&view);
     mesh->draw();
     state->lastFrameTime = state->currFrameTime;
-}
-
-void prepareShaders(runState* state){
-    state->shaderVec.emplace_back("shaders/default.vs", "shaders/vtxTexCoord.fs");
-    state->shaderVec.emplace_back("shaders/default.vs", "shaders/normal.fs");
-    state->shaderVec.emplace_back("shaders/default.vs", "shaders/triplanarMapping.fs");
-    state->shaderVec.emplace_back("shaders/default.vs", "shaders/vtxColor.fs");
 }
 
 void printInfo(){
@@ -204,7 +212,7 @@ int main(int argc, char** argv){
     gladInit();
     glfwSetInputMode(mainState.window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetWindowUserPointer(mainState.window, &mainState);
-    glfwSetKeyCallback(mainState.window, toggleRotation);
+    glfwSetKeyCallback(mainState.window, inputCallback);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEBUG_OUTPUT);
@@ -225,7 +233,8 @@ int main(int argc, char** argv){
     mainState.camera.movSpeed *= object.getScale();
     mainState.camera.position.z = object.boundingSphereRadius() / sin(mainState.camera.fov/2);
     glfwSetWindowTitle(mainState.window, object.getName()->insert(0, "42 scop :: ").c_str());
-    prepareShaders(&mainState);
+    Shader shdr{"shaders/default.vs", "shaders/default.fs"};
+    mainState.shaderID = shdr;
     printInfo();
 
     while(!glfwWindowShouldClose(mainState.window)){
