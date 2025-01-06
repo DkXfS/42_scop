@@ -33,7 +33,7 @@ namespace Math{
                 for(int i=0; i<4; i++)
                     for(int j=0; j<4; j++)
                         for(int k=0; k<4; k++)
-                            *prod[i*4+j] += items[i*4+k] * *arg[k*4+j];
+                            prod[j][i] += items[k*4+i] * arg[j][k];
                 return prod;
             }
     

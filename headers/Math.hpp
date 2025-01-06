@@ -2,9 +2,10 @@
 
 #include <math.h>
 #include "Mat4.hpp"
-#include "vec3.hpp"
-#include "vec2.hpp"
-#include "vec4.hpp"
+#include "Vec3.hpp"
+#include "Vec2.hpp"
+#include "Vec4.hpp"
+#include "Quaternion.hpp"
 
 namespace Math{
     float radians(float degrees){ return degrees * M_PI/180; }
