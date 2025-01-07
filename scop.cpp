@@ -1,3 +1,4 @@
+#include <string_view>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "headers/Math.hpp"
@@ -5,24 +6,12 @@
 #include "headers/Shader.hpp"
 #include "headers/BMP.hpp"
 #include "headers/Camera.hpp"
+#include "headers/GLHelpers.hpp"
 
-void GLAPIENTRY MessageCallback( GLenum source,
-                                 GLenum type,
-                                 GLuint id,
-                                 GLenum severity,
-                                 GLsizei length,
-                                 const GLchar* message,
-                                 const void* userParam ){
-    fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-            type, severity, message );
-    // std::cout << "GL CALLBACK: " << ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ) << " type = 0x" << std::hex << type << ", severity = 0x" << severity << ", message = " << message << "\n";
-}
-
-GLFWwindow* windowInit(int w, int h){
+GLFWwindow* windowInit(int w, int h, bool debugContext){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, debugContext);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);      //Required on MacOS
 
@@ -64,12 +53,12 @@ struct runState{
     bool isRotating;
     bool isColored;
 
-    runState(): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
+    runState(bool debugRun): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
         resolution.y = videoMode->height * 0.75;
-        window = windowInit(resolution.x, resolution.y);
+        window = windowInit(resolution.x, resolution.y, debugRun);
     }
 
     ~runState(){
@@ -206,10 +195,24 @@ int main(int argc, char** argv){
     if(argc < 2){
         std::cout << "Program must be opened with atleast a wavefront OBJ file path.\n";
         std::cout << "Optionally a BMP texture path can be specified as a second argument to replace the default one\n";
+        std::cout << "USAGE: scop [--debug] <input_obj_path> [<input_texture_path>]\n";
         return 1;
     }
 
-    runState mainState;
+    int argIdx = 1;
+    bool debugRun = false;
+    if((std::string_view{argv[argIdx]}) == "--debug"){
+        debugRun = true;
+        argIdx++;
+    }
+
+    if((!debugRun && argc > 3) || argc > 4){
+        std::cout << "Too many arguments\n";
+        std::cout << "USAGE: scop [--debug] <input_obj_path> [<input_texture_path>]\n";
+        return 1;
+    }
+
+    runState mainState{debugRun};
     if(mainState.window == nullptr)
         return 1;
     gladInit();
@@ -217,18 +220,17 @@ int main(int argc, char** argv){
     glfwSetWindowUserPointer(mainState.window, &mainState);
     glfwSetKeyCallback(mainState.window, inputCallback);
 
+    enableGLDebugMessages();
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
     glViewport(0, 0, mainState.resolution.x, mainState.resolution.y);
 
-    Obj object{argv[1]};
+    Obj object{argv[argIdx++]};
     if(!object)
         return 1;
 
     char* texPath = (char*)"tex/gato.bmp";
-    if(argc > 2)
-        texPath = argv[2];
+    if(argIdx < argc)
+        texPath = argv[argIdx];
     BMP tex = BMP(texPath);
     if(!tex)
         return 1;
