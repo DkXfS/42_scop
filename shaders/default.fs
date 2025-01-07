@@ -2,6 +2,7 @@
 out vec4 FragColor;
 
 in vec4 vertexColor;
+in vec4 vertexGrey;
 in vec2 texCoord;
 in vec3 normal;
 in vec3 pos;
@@ -32,6 +33,8 @@ vec4 getColor(int choice){
         case 2:
             return triplanarMapping();
         case 3:
+            return vertexGrey;
+        case 4:
             return vertexColor;
     }
 }

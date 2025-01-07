@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <GLAD/glad.h>
-#include "math.hpp"
+#include "Math.hpp"
 
 class Obj{
     struct Vertex{
@@ -13,6 +13,7 @@ class Obj{
         Math::Vec2<float> texCoord;
         Math::Vec3<float> normal;
         Math::Vec4<float> color;
+        Math::Vec4<float> grey;
     };
 
     std::string name;
@@ -34,6 +35,21 @@ class Obj{
         (*(va-2)).normal = normal;
     }
 
+    void setColor(std::vector<Vertex>::iterator va){
+        Math::Vec4<float> rgba;
+        for(int i=0; i<3; i++){
+            rgba.x += (*(va-i)).position.x;
+            rgba.y += (*(va-i)).position.y;
+            rgba.z += (*(va-i)).position.z;
+        }
+        rgba.x = abs(fmod(rgba.x / 3.0f, 1.0f));
+        rgba.y = abs(fmod(rgba.y / 3.0f, 1.0f));
+        rgba.z = abs(fmod(rgba.z / 3.0f, 1.0f));
+        rgba.w = 1;
+        for(int i=0; i<3; i++)
+            (*(va-i)).color = rgba;
+    }
+
     void buildTexCoord(Vertex* v){
         float theta = atan2(v->position.z, v->position.x);
 		float phi =
@@ -42,7 +58,7 @@ class Obj{
 		v->texCoord.y = phi / M_PI;
     }
 
-    Vertex composeVert(std::string desc, float color, std::vector<Math::Vec3<float>>* verts, std::vector<Math::Vec3<float>>* normals, std::vector<Math::Vec2<float>>* texCoords){
+    Vertex composeVert(std::string desc, float grey, std::vector<Math::Vec3<float>>* verts, std::vector<Math::Vec3<float>>* normals, std::vector<Math::Vec2<float>>* texCoords){
         std::stringstream vtxstr(desc);
         std::string idxStr;
         Vertex ret;
@@ -80,10 +96,10 @@ class Obj{
             count++;
         }
         ret.texCoord.y = 1 - ret.texCoord.y;
-        ret.color.x = color;
-        ret.color.y = color;
-        ret.color.z = color;
-        ret.color.w = 1;
+        ret.grey.x = grey;
+        ret.grey.y = grey;
+        ret.grey.z = grey;
+        ret.grey.w = 1;
         return ret;
     }
 
@@ -163,6 +179,7 @@ class Obj{
                             buildNormals(vtxData.end()-1);
                             missingNormals = false;
                         }
+                        setColor(vtxData.end()-1);
                     }
                 }
                 else if(type == "o")
@@ -181,13 +198,15 @@ class Obj{
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferData(GL_ARRAY_BUFFER, vtxData.size()*sizeof(Vertex), &vtxData[0], GL_STATIC_DRAW);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(8*sizeof(float)));
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(12*sizeof(float)));
             glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3*sizeof(float)));
             glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(5*sizeof(float)));
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(8*sizeof(float)));
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
             glEnableVertexAttribArray(2);
             glEnableVertexAttribArray(3);
+            glEnableVertexAttribArray(4);
         }
 
         ~Obj(){

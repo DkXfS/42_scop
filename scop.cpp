@@ -48,6 +48,7 @@ struct runState{
         normals,
         triplanarMapping,
         grey,
+        color,
     };
 
     Camera camera;
@@ -61,9 +62,9 @@ struct runState{
     float currFrameTime;
     float rotationAngle;
     bool isRotating;
-    bool vPressed;
+    bool isColored;
 
-    runState(): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, vPressed(false){
+    runState(): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
@@ -78,30 +79,32 @@ struct runState{
 
 void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
     runState* state = (runState*)glfwGetWindowUserPointer(window);
-    if(key == GLFW_KEY_V)
-        state->vPressed = action == GLFW_PRESS;
-    if(key == GLFW_KEY_1 && action == GLFW_PRESS && state->vPressed){
+    if(key == GLFW_KEY_T && action == GLFW_PRESS){
         state->shaderSelection.x = state->shaderSelection.y;
-        state->shaderSelection.y = state->texCoords;
+        if(state->isColored)
+            state->shaderSelection.y = state->texCoords;
+        else
+            state->shaderSelection.y = state->color;
+        state->isColored = !state->isColored;
         state->mixPercentage = 0;
     }
-    else if(key == GLFW_KEY_2 && action == GLFW_PRESS && state->vPressed){
+    else if(key == GLFW_KEY_N && action == GLFW_PRESS){
         state->shaderSelection.x = state->shaderSelection.y;
         state->shaderSelection.y = state->normals;
         state->mixPercentage = 0;
     }
-    else if(key == GLFW_KEY_3 && action == GLFW_PRESS && state->vPressed){
+    else if(key == GLFW_KEY_3 && action == GLFW_PRESS){
         state->shaderSelection.x = state->shaderSelection.y;
         state->shaderSelection.y = state->triplanarMapping;
         state->mixPercentage = 0;
     }
-    else if(key == GLFW_KEY_4 && action == GLFW_PRESS && state->vPressed){
+    else if(key == GLFW_KEY_G && action == GLFW_PRESS){
         state->shaderSelection.x = state->shaderSelection.y;
         state->shaderSelection.y = state->grey;
         state->mixPercentage = 0;
     }
 
-    if(key == GLFW_KEY_T && action == GLFW_PRESS)
+    if(key == GLFW_KEY_R && action == GLFW_PRESS)
         state->isRotating = !state->isRotating;
 }
 
@@ -180,17 +183,17 @@ void runLoop(Obj* mesh, runState* state){
 
 void printInfo(){
     std::cout << "Controls:\n";
-    std::cout << "\tV + 1      - Use Object's Texture Coordinates\n";
-    std::cout << "\tV + 2      - Use Face Normals to Shade\n";
-    std::cout << "\tV + 3      - Use Triplanar Mapping\n";
-    std::cout << "\tV + 4      - Use Greyscale Shading\n";
+    std::cout << "\tT          - Toggle between colors and texture\n";
+    std::cout << "\tN          - Use Face Normals to Shade\n";
+    std::cout << "\t3          - Use Triplanar Texture Mapping\n";
+    std::cout << "\tG          - Use Greyscale Shading\n";
     std::cout << "\t\n";
     std::cout << "\tW & S      - Move Object Away & Toward Camera\n";
     std::cout << "\tA & D      - Move Object Sideways\n";
     std::cout << "\tLeft Ctrl  - Move Object Down\n";
     std::cout << "\tSpace      - Move Object Up\n";
     std::cout << "\t\n";
-    std::cout << "\tT          - Toggle Object Rotation\n";
+    std::cout << "\tR          - Toggle Object Rotation\n";
     std::cout << "\t\n";
     std::cout << "\tWASD       - Rotate Camera Around Object\n";
     std::cout << "\t\n";
