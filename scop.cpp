@@ -7,6 +7,7 @@
 #include "headers/BMP.hpp"
 #include "headers/Camera.hpp"
 #include "headers/GLHelpers.hpp"
+#include "headers/Light.hpp"
 
 GLFWwindow* windowInit(int w, int h, bool debugContext){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -50,10 +51,11 @@ struct runState{
     float lastFrameTime;
     float currFrameTime;
     float rotationAngle;
+    int lightCount;
     bool isRotating;
     bool isColored;
 
-    runState(bool debugRun): mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
+    runState(bool debugRun): lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
@@ -91,6 +93,15 @@ void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mo
         state->shaderSelection.x = state->shaderSelection.y;
         state->shaderSelection.y = state->grey;
         state->mixPercentage = 0;
+    }
+
+    if(key == GLFW_KEY_I && action == GLFW_PRESS){
+        if(state->lightCount > 0)
+            state->lightCount--;
+    }
+    else if(key == GLFW_KEY_O && action == GLFW_PRESS){
+        if(state->lightCount < 3)
+            state->lightCount++;
     }
 
     if(key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -142,13 +153,13 @@ void runLoop(Obj* mesh, runState* state){
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(state->shaderID);
     int projUniform = glGetUniformLocation(state->shaderID, "projection");
     int modelUniform = glGetUniformLocation(state->shaderID, "model");
     int viewUniform = glGetUniformLocation(state->shaderID, "view");
     glUniform1i(glGetUniformLocation(state->shaderID, "objScale"), mesh->getScale());
+    glUniform1i(glGetUniformLocation(state->shaderID, "lightCount"), state->lightCount);
     glUniform1f(glGetUniformLocation(state->shaderID, "percentage"), state->mixPercentage);
-    glUniform2i(glGetUniformLocation(state->shaderID, "chosenShaders"), state->shaderSelection.x, state->shaderSelection.y);
+    glUniform2iv(glGetUniformLocation(state->shaderID, "chosenShaders"), 1, &state->shaderSelection.x);
 
     if(state->mixPercentage < 1)
         state->mixPercentage += 0.01;
@@ -186,7 +197,18 @@ void printInfo(){
     std::cout << "\t\n";
     std::cout << "\tWASD       - Rotate Camera Around Object\n";
     std::cout << "\t\n";
+    std::cout << "\tI & O      - To Increase/Decrease Number of Point Lights\n";
+    std::cout << "\t\n";
     std::cout << "\tESC        - Exit Application\n";
+}
+
+void prepareLights(float objBounds, unsigned int shaderID){
+    std::vector<Light> lights;
+    lights.reserve(3);
+    lights.push_back(Light{Math::Vec3{objBounds, 0.0f, 0.0f}, Math::Vec4{1.0f, 0.0f, 0.0f, 1.0f}});
+    lights.push_back(Light{Math::Vec3{0.0f, objBounds, 0.0f}, Math::Vec4{0.0f, 1.0f, 0.0f, 1.0f}});
+    lights.push_back(Light{Math::Vec3{0.0f, 0.0f, objBounds}, Math::Vec4{0.0f, 0.0f, 1.0f, 1.0f}});
+    setLights(lights, shaderID);
 }
 
 int main(int argc, char** argv){
@@ -240,6 +262,8 @@ int main(int argc, char** argv){
     glfwSetWindowTitle(mainState.window, object.getName()->insert(0, "42 scop :: ").c_str());
     Shader shdr{"shaders/default.vs", "shaders/default.fs"};
     mainState.shaderID = shdr;
+    glUseProgram(shdr);
+    prepareLights(object.boundingSphereRadius(), shdr);
     printInfo();
 
     while(!glfwWindowShouldClose(mainState.window)){
