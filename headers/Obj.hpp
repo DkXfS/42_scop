@@ -29,7 +29,7 @@ class Obj{
     void buildNormals(std::vector<Vertex>::iterator va){
         Math::Vec3 v1 = (*va).position - (*(va-1)).position;
         Math::Vec3 v2 = (*va).position - (*(va-2)).position;
-        Math::Vec3 normal = (v1 * v2).normalized();
+        Math::Vec3 normal = (v2 * v1).normalized();
         (*va).normal = normal;
         (*(va-1)).normal = normal;
         (*(va-2)).normal = normal;
