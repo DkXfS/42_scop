@@ -52,6 +52,7 @@ struct runState{
     float currFrameTime;
     float rotationAngle;
     int lightCount;
+    int lightTotal;
     bool isRotating;
     bool isColored;
 
@@ -100,7 +101,7 @@ void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mo
             state->lightCount--;
     }
     else if(key == GLFW_KEY_O && action == GLFW_PRESS){
-        if(state->lightCount < 3)
+        if(state->lightCount < state->lightTotal)
             state->lightCount++;
     }
 
@@ -160,6 +161,7 @@ void runLoop(Obj* mesh, runState* state){
     glUniform1i(glGetUniformLocation(state->shaderID, "lightCount"), state->lightCount);
     glUniform1f(glGetUniformLocation(state->shaderID, "percentage"), state->mixPercentage);
     glUniform2iv(glGetUniformLocation(state->shaderID, "chosenShaders"), 1, &state->shaderSelection.x);
+    glUniform3fv(glGetUniformLocation(state->shaderID, "viewPos"), 1, &state->camera.position.x);
 
     if(state->mixPercentage < 1)
         state->mixPercentage += 0.01;
@@ -202,13 +204,15 @@ void printInfo(){
     std::cout << "\tESC        - Exit Application\n";
 }
 
-void prepareLights(float objBounds, unsigned int shaderID){
+void prepareLights(float objBounds, runState* state){
     std::vector<Light> lights;
-    lights.reserve(3);
+    state->lightTotal = 4;
+    lights.reserve(state->lightTotal);
     lights.push_back(Light{Math::Vec3{objBounds, 0.0f, 0.0f}, Math::Vec4{1.0f, 0.0f, 0.0f, 1.0f}});
     lights.push_back(Light{Math::Vec3{0.0f, objBounds, 0.0f}, Math::Vec4{0.0f, 1.0f, 0.0f, 1.0f}});
     lights.push_back(Light{Math::Vec3{0.0f, 0.0f, objBounds}, Math::Vec4{0.0f, 0.0f, 1.0f, 1.0f}});
-    setLights(lights, shaderID);
+    lights.push_back(Light{Math::Vec3{0.0f, 0.0f, -objBounds}, Math::Vec4{1.0f, 1.0f, 1.0f, 1.0f}});
+    setLights(lights, state->shaderID);
 }
 
 int main(int argc, char** argv){
@@ -263,7 +267,7 @@ int main(int argc, char** argv){
     Shader shdr{"shaders/default.vs", "shaders/default.fs"};
     mainState.shaderID = shdr;
     glUseProgram(shdr);
-    prepareLights(object.boundingSphereRadius(), shdr);
+    prepareLights(object.boundingSphereRadius(), &mainState);
     printInfo();
 
     while(!glfwWindowShouldClose(mainState.window)){
