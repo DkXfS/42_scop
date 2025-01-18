@@ -216,7 +216,7 @@ class Obj{
 
         operator bool() const{ return validSource; }
 
-        std::string* getName(){ return &name; }
+        std::string_view getName(){ return name; }
 
         float getScale(){ return scale; }
 
