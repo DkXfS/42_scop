@@ -43,6 +43,7 @@ struct runState{
 
     Camera camera;
     GLFWwindow* window;
+    std::string windowTitle;
     unsigned int shaderID;
     Math::Vec2<int> shaderSelection;
     Math::Vec2<int> resolution;
@@ -56,7 +57,7 @@ struct runState{
     bool isRotating;
     bool isColored;
 
-    runState(bool debugRun): lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
+    runState(bool debugRun): windowTitle("42 scop :: "), lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
@@ -150,6 +151,8 @@ void fetchContinuousInput(runState* state){
 
 void runLoop(Obj* mesh, runState* state){
     state->currFrameTime = glfwGetTime();
+    int instantaneousFPS = 1 / (state->currFrameTime - state->lastFrameTime);
+    glfwSetWindowTitle(state->window, (state->windowTitle + std::to_string(instantaneousFPS) + " FPS").c_str());
     fetchContinuousInput(state);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -263,7 +266,8 @@ int main(int argc, char** argv){
 
     mainState.camera.movSpeed *= object.getScale();
     mainState.camera.position.z = object.boundingSphereRadius() / sin(mainState.camera.fov/2);
-    glfwSetWindowTitle(mainState.window, object.getName()->insert(0, "42 scop :: ").c_str());
+    mainState.windowTitle.append(object.getName());
+    mainState.windowTitle.append(" :: ");
     Shader shdr{"shaders/default.vs", "shaders/default.fs"};
     mainState.shaderID = shdr;
     glUseProgram(shdr);
