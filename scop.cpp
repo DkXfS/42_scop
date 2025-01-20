@@ -1,4 +1,3 @@
-#include <string_view>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "headers/Math.hpp"
@@ -69,6 +68,13 @@ struct runState{
         glfwTerminate();
     }
 };
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+    runState* state = (runState*)glfwGetWindowUserPointer(window);
+    state->resolution.x = width;
+    state->resolution.y = height;
+    glViewport(0, 0, state->resolution.x, state->resolution.y);
+}
 
 void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
     runState* state = (runState*)glfwGetWindowUserPointer(window);
@@ -247,11 +253,11 @@ int main(int argc, char** argv){
     gladInit();
     glfwSetInputMode(mainState.window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetWindowUserPointer(mainState.window, &mainState);
+    glfwSetFramebufferSizeCallback(mainState.window, framebuffer_size_callback);
     glfwSetKeyCallback(mainState.window, inputCallback);
 
     enableGLDebugMessages();
     glEnable(GL_DEPTH_TEST);
-    glViewport(0, 0, mainState.resolution.x, mainState.resolution.y);
 
     Obj object{argv[argIdx++]};
     if(!object)
