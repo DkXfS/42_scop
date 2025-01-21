@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 #include "Math.hpp"
 
 class Obj{
@@ -95,7 +95,6 @@ class Obj{
                 missingNormals = true;
             count++;
         }
-        ret.texCoord.y = 1 - ret.texCoord.y;
         ret.grey.x = grey;
         ret.grey.y = grey;
         ret.grey.z = grey;

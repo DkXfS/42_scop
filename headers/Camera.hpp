@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math.hpp"
+#include "Math.hpp"
 
 struct Camera{
     Math::Vec3<float> position;
