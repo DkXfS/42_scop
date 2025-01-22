@@ -63,7 +63,7 @@ struct runState{
     bool isRotating;
     bool isColored;
 
-    runState(bool debugRun): windowTitle("42 scop :: "), polyMode(fill), lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
+    runState(bool debugRun): windowTitle("42 scop :: "), polyMode(fill), lightCount(3), mixPercentage(1), lastFrameTime(0), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
