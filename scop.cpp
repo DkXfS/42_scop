@@ -40,10 +40,17 @@ struct runState{
         color,
     };
 
+    enum PolygonModes{
+        point = GL_POINT,
+        line = GL_LINE,
+        fill = GL_FILL,
+    };
+
     Camera camera;
     GLFWwindow* window;
     std::string windowTitle;
     unsigned int shaderID;
+    PolygonModes polyMode;
     Math::Vec2<int> shaderSelection;
     Math::Vec2<int> resolution;
     Math::Vec3<float> rotationAxis;
@@ -56,7 +63,7 @@ struct runState{
     bool isRotating;
     bool isColored;
 
-    runState(bool debugRun): windowTitle("42 scop :: "), lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
+    runState(bool debugRun): windowTitle("42 scop :: "), polyMode(fill), lightCount(3), mixPercentage(1), shaderSelection(normals, grey), rotationAngle(0), isRotating(true), rotationAxis{0, 1, 0}, isColored(true){
         glfwInit();
         const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         resolution.x = videoMode->width * 0.75;
@@ -110,6 +117,15 @@ void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mo
     else if(key == GLFW_KEY_O && action == GLFW_PRESS){
         if(state->lightCount < state->lightTotal)
             state->lightCount++;
+    }
+
+    if(key == GLFW_KEY_M && action == GLFW_PRESS){
+        if(state->polyMode == state->fill)
+            state->polyMode = state->point;
+        else
+            state->polyMode = (runState::PolygonModes)((int)state->polyMode + 1);
+
+        glPolygonMode(GL_FRONT_AND_BACK, state->polyMode);
     }
 
     if(key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -198,6 +214,7 @@ void printInfo(){
     std::cout << "\tN          - Use Face Normals to Shade\n";
     std::cout << "\t3          - Use Triplanar Texture Mapping\n";
     std::cout << "\tG          - Use Greyscale Shading\n";
+    std::cout << "\tM          - Cycle between Fill, Point and Line Rendering modes\n";
     std::cout << "\t\n";
     std::cout << "\tW & S      - Move Object Away & Toward Camera\n";
     std::cout << "\tA & D      - Move Object Sideways\n";
@@ -258,6 +275,7 @@ int main(int argc, char** argv){
 
     enableGLDebugMessages();
     glEnable(GL_DEPTH_TEST);
+    glPointSize(2);
 
     Obj object{argv[argIdx++]};
     if(!object)
