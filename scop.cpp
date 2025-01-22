@@ -193,7 +193,7 @@ void runLoop(Obj* mesh, runState* state){
 
     Math::Mat4<float> model(1.0f);
     if(state->isRotating)
-        state->rotationAngle += 0.01;
+        state->rotationAngle += (state->currFrameTime - state->lastFrameTime);
     Math::Mat4<float> rotation = Math::Quaternion<float>(state->rotationAxis, state->rotationAngle).getMatrix();
     Math::Vec3<float> translation = Math::Vec3{0.0f, 0.0f, 0.0f} - mesh->getMidPoint();
     model = Math::translationMatrix(model, translation);
