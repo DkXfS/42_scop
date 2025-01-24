@@ -25,8 +25,8 @@ namespace Math{
 
         Vec2<T> operator-(Vec2<T> b){
             Vec2<T> res;
-            res.x = this.x - b.x;
-            res.y = this.y - b.y;
+            res.x = this->x - b.x;
+            res.y = this->y - b.y;
             return res;
         }
 
